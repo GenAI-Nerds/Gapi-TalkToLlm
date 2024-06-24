@@ -1,0 +1,137 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+  <title>Gapi Use Case: Talk to LLM</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body onload="onLoad()">
+
+  <div class="main-container">
+    <div class="logo-container">
+      <div class="bottom-logo">
+        <img class="main-logo"src="logo.png" width="100px" height="100px"/>
+      </div>
+    </div>
+
+    <div class="welcome-prompt">
+      Talk to Me
+    </div>
+    <div class="text-box-container">
+
+      <div class="text-box-row">
+        <div class="text-box-label">
+          Gapi Url:
+        </div>
+        <div class="text-box">
+          <input type="text" id="gapiUrl" value="ws://localhost:8090/gapi-ws">
+        </div>
+      </div>
+      <div class="text-box-row">
+        <div class="text-box-label">
+          Gapi Key:
+        </div>
+        <div class="text-box">
+          <input type="text" id="gapiKey">
+        </div>
+      </div>
+      <div class="text-box-row">
+        <div class="text-box-label">
+          Workflow Key:
+        </div>
+        <div class="text-box">
+          <input type="text" id="workflowKey">
+        </div>
+      </div>
+      <div class="text-box-row">
+        <div class="text-box-label">
+          Speech Node Key:
+        </div>
+        <div class="text-box">
+          <input type="text" id="sttNodeKey">
+        </div>
+      </div>
+    </div>
+
+    <div class="button-holder">
+      <input id="start-button" type="button" value="Start" class="client-button"
+        style="width: 15rem; padding-top: 0.25rem; padding-bottom: 0.25rem;"
+        onclick="startFlow()"
+      >
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script id="audioWorker" #audioWorker type="javascript/worker">
+    /*
+    * SPDX-FileCopyrightText: Copyright (c) 2022 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+    * SPDX-License-Identifier: MIT
+    */
+    
+    var outSampleRate = 16000;
+    var inSampleRate;
+    
+    this.onmessage = function(msg) {
+        switch(msg.data.command){
+          case 'init':
+            init(msg.data.config);
+            break;
+          case 'convert':
+            convert(msg.data.buffer);
+            break;
+        }
+    }
+    
+    function init(config) {
+        inSampleRate = config.sampleRate;
+        outSampleRate = config.outSampleRate || outSampleRate;
+    }
+    
+    function convert(data) {
+      var resampled;
+      var output = {};
+      resampled = resample(data, inSampleRate, outSampleRate);
+      output.resampled = floatTo16BitPCM(resampled);
+      output.command = 'newBuffer';
+      this.postMessage(output);
+    }
+    
+    /**
+    * Resample an audio buffer, adapted from http://stackoverflow.com/a/28977136/552182
+    */
+    function resample(data, inRate, outRate) {
+      var fitCount = Math.round(data.length * (outRate / inRate));
+      var newData = new Array();
+      var springFactor = new Number((data.length - 1) / (fitCount - 1));
+      newData[0] = data[0];
+      for ( var i = 1; i < fitCount - 1; i++) {
+          var tmp = i * springFactor;
+          var before = new Number(Math.floor(tmp)).toFixed();
+          var after = new Number(Math.ceil(tmp)).toFixed();
+          var atPoint = tmp - before;
+          newData[i] = linearInterpolate(data[before], data[after], atPoint);
+      }
+      newData[fitCount - 1] = data[data.length - 1];
+      return newData;
+    }
+    
+    function linearInterpolate(before, after, atPoint) {
+      return before + (after - before) * atPoint;
+    }
+    
+    /*
+    * Convert Float32Array from the AudioBuffer into Int16Array/PCM
+    */
+    function floatTo16BitPCM(input) {
+      let output = new Int16Array(input.length);
+      for (let i = 0; i < input.length; i++) {
+          let s = Math.max(-1, Math.min(1, input[i]));
+          output[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+      }
+      return output;
+     }
+    </script>    
+</body>
+</html>
