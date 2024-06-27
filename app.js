@@ -21,7 +21,8 @@ var streamInProcess;
 var sampleRate;
 var audioInput;
 var recordder;
-var outputSampleRate = 16000;
+var outputSampleRate = 1600;
+var playbackSampleRate = 22050;
 
 function onLoad() {
 
@@ -83,7 +84,6 @@ function connect() {
     
     assertMediaPlayer();
     requestLocalAudio();
-    sendStart();
   };
 
   ws.onmessage = function (evt) { 
@@ -145,7 +145,7 @@ function assertMediaPlayer() {
   mediaPlayer = new PCMPlayer({
     encoding: '16bitInt',
     channels: 1,
-    sampleRate: 44100,
+    sampleRate: playbackSampleRate,
     flushingTime: 25
   });
 }
