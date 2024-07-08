@@ -47,18 +47,26 @@
       </div>
       <div class="text-box-row">
         <div class="text-box-label">
-          Speech Node Key:
+          Speech To Text Node Key:
         </div>
         <div class="text-box">
           <input type="text" id="sttNodeKey">
         </div>
       </div>
+      <div class="text-box-row">
+        <div class="text-box-label">
+          Whisper Micro Service Key:
+        </div>
+        <div class="text-box">
+          <input type="text" id="microServiceKey" value="0B34504917AE">
+        </div>
+      </div>
     </div>
 
     <div class="button-holder">
-      <input id="start-button" type="button" value="Start" class="client-button"
+      <input id="start-button" type="button" value="Start / Stop Mic" class="client-button"
         style="width: 15rem; padding-top: 0.25rem; padding-bottom: 0.25rem;"
-        onclick="startFlow()"
+        onclick="toggleFlow()"
       >
     </div>
   </div>

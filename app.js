@@ -3,6 +3,7 @@
 var url = "";//"ws://localhost:8090/gapi-ws"
 var gapiKey = "";
 var workflowKey = "";
+var microServiceKey = "";
 var sttNodeKey = "";
 
 var mediaPlayer;
@@ -21,15 +22,80 @@ var streamInProcess;
 var sampleRate;
 var audioInput;
 var recordder;
-var outputSampleRate = 1600;
-var playbackSampleRate = 22050;
+var outputSampleRate = 16000;
+var playbackSampleRate = 44100;
+
+var textEncoder = new TextEncoder();
+var headerBytes;
+var jsonBytes;
+
+var startedMode = false;
 
 function onLoad() {
 
 }
 
-function startFlow() {
+function encodeMicroServiceMsg(binBytes) {
+    
+  console.log("Encoding");
 
+  var idx = 0;  
+  if (!headerBytes) {
+      
+    var msm = {
+      "workflowKey": workflowKey,
+      "nodeKey": sttNodeKey,
+      "microServiceKey": microServiceKey,
+      "destination": "microService"
+    }
+  
+    headerBytes = new ArrayBuffer(8); //4 bytes magic plus 4 bytes jsonLen
+    var view = new DataView(headerBytes);
+    view.setUint8(idx++, 20); //magic
+    view.setUint8(idx++, 10);
+    view.setUint8(idx++, 5);
+    view.setUint8(idx++, 17);
+    
+    var msmAsJson = JSON.stringify(msm);
+    var jsonLen = msmAsJson.length;
+    view.setUint32(idx, jsonLen, true); // true = little endian
+    idx += 4;
+    
+    jsonBytes = textEncoder.encode(msmAsJson);
+  }
+  else {
+    idx = 8;
+  }
+  
+  // Concat 4 bytes magic plus jsonLen plus json as bytes plus binary bytes
+  var outBytesLen = idx + jsonBytes.length + binBytes.byteLength;
+  var outBytes = new Uint8Array(outBytesLen);
+  outBytes.set(new Uint8Array(headerBytes), 0); // header
+  outBytes.set(jsonBytes, idx);
+  outBytes.set(jsonBytes, idx + jsonBytes.length);
+  
+  idx += jsonBytes.length;
+  
+  if (binBytes.length > 0) {
+    outBytes.set(binBytes, idx);
+  }
+
+  return outBytes;
+}
+
+function toggleFlow() {
+
+  if (startedMode) {
+  
+    console.log("ToggleFlow: Stopped----------------->");  
+    shutdown();
+    startedMode = false;
+    return;
+  }
+  
+  startedMode = true;
+  console.log("ToggleFlow: Started----------------->");  
+  
   if (url.length == 0) {
    url = document.getElementById("gapiUrl").value;
   }
@@ -46,7 +112,11 @@ function startFlow() {
     sttNodeKey = document.getElementById("sttNodeKey").value;
   }
 
-  console.log("startFlow(), gapiKey: " + gapiKey + ", workflowKey: " + workflowKey + ", sttNodeKey: " + sttNodeKey);
+  if (microServiceKey.length == 0) {
+    microServiceKey = document.getElementById("microServiceKey").value;
+  }
+
+  console.log("startFlow(), gapiKey: " + gapiKey + ", workflowKey: " + workflowKey + ", sttNodeKey: " + sttNodeKey + ", microServiceKey: " + microServiceKey);
 
   connect();
 }
@@ -103,9 +173,9 @@ function connect() {
     var o = JSON.parse(msg);
     if (o.data) {
 
-      var meetingResponse = JSON.parse(o.data);
+      var response = JSON.parse(o.data);
 
-      console.log("meetingResponse: " + meetingResponse);
+      console.log("response: " + response);
     }
 
     if (mode == "sendStartSession") {
@@ -127,6 +197,7 @@ function connect() {
 
     console.log("[ERROR] Websocket: closed");
     stopMessageTimer();
+    shutdown();
     setTimeout(connect, retryConnectTime);
   };
 
@@ -282,8 +353,9 @@ function startAudioRunnable() {
 
       if (msg.data.command == 'newBuffer') {
 
-        //console.log("Audio bytes: " + msg.data.resampled.buffer.byteLength);
-        ws.send(msg.data.resampled.buffer);
+        console.log("Audio bytes: " + msg.data.resampled.buffer.byteLength);
+        var encoded = encodeMicroServiceMsg(msg.data.resampled.buffer);
+        ws.send(encoded);
       }
     };
   };
@@ -294,4 +366,32 @@ function startAudioRunnable() {
   recorder.connect(this.audioContext.destination);
 
   console.log("Audio pipeline setup OK");
+}
+
+function shutdown() {
+
+  console.log("Shutting down audio pipeline");
+
+  if (this.streamInProcess) {
+    try {
+      this.streamInProcess.getTracks().forEach((track) => {
+        track.stop()
+      });
+    }
+    catch (error) { console.error(error); }
+  }
+    
+  if (this.audioInput) {
+    try {
+      this.audioInput.disconnect();
+    }
+    catch (error) { console.error(error); }
+  }
+
+  if (this.recorder) {
+    try {
+      this.recorder.disconnect();
+    }
+    catch (error) { console.error(error); }
+  }
 }
