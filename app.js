@@ -1,10 +1,10 @@
 
 // HARDCODE THE FOLLOWING 4 if you like else enter them in html widgets
 var url = "";//"ws://localhost:8090/gapi-ws"
-var gapiKey = "";
-var workflowKey = "";
+var gapiKey = "CFCFA7DBA228";
+var workflowKey = "8DBA42055F8D";
 var microServiceKey = "";
-var sttNodeKey = "";
+var sttNodeKey = "B1F50A586DCF";
 
 var mediaPlayer;
 var workflowMode = "idle";
@@ -35,7 +35,7 @@ function onLoad() {
 
 }
 
-function encodeMicroServiceMsg(binBytes) {
+function encodeMicroServiceMsg(binBytesArrayBuffer) {
     
   console.log("Encoding");
 
@@ -46,7 +46,8 @@ function encodeMicroServiceMsg(binBytes) {
       "workflowKey": workflowKey,
       "nodeKey": sttNodeKey,
       "microServiceKey": microServiceKey,
-      "destination": "microService"
+      "destination": "microService",
+      "message": "{\"loudnessThreshold\": -7}"
     }
   
     headerBytes = new ArrayBuffer(8); //4 bytes magic plus 4 bytes jsonLen
@@ -68,16 +69,16 @@ function encodeMicroServiceMsg(binBytes) {
   }
   
   // Concat 4 bytes magic plus jsonLen plus json as bytes plus binary bytes
-  var outBytesLen = idx + jsonBytes.length + binBytes.byteLength;
+  var outBytesLen = idx + jsonBytes.length + binBytesArrayBuffer.byteLength;
   var outBytes = new Uint8Array(outBytesLen);
   outBytes.set(new Uint8Array(headerBytes), 0); // header
   outBytes.set(jsonBytes, idx);
-  outBytes.set(jsonBytes, idx + jsonBytes.length);
   
   idx += jsonBytes.length;
   
-  if (binBytes.length > 0) {
-    outBytes.set(binBytes, idx);
+  if (binBytesArrayBuffer.byteLength > 0) {
+      
+    outBytes.set(new Uint8Array(binBytesArrayBuffer), idx);
   }
 
   return outBytes;
