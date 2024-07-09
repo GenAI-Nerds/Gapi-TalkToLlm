@@ -1,10 +1,10 @@
 
 // HARDCODE THE FOLLOWING 4 if you like else enter them in html widgets
 var url = "";//"ws://localhost:8090/gapi-ws"
-var gapiKey = "CFCFA7DBA228";
-var workflowKey = "8DBA42055F8D";
+var gapiKey = "";
+var workflowKey = "";
 var microServiceKey = "";
-var sttNodeKey = "B1F50A586DCF";
+var sttNodeKey = "";
 
 var mediaPlayer;
 var workflowMode = "idle";
@@ -24,6 +24,8 @@ var audioInput;
 var recordder;
 var outputSampleRate = 16000;
 var playbackSampleRate = 44100;
+var loudnessThreshold;
+var minSilenceWindowMs;
 
 var textEncoder = new TextEncoder();
 var headerBytes;
@@ -47,7 +49,7 @@ function encodeMicroServiceMsg(binBytesArrayBuffer) {
       "nodeKey": sttNodeKey,
       "microServiceKey": microServiceKey,
       "destination": "microService",
-      "message": "{\"loudnessThreshold\": -7}"
+      "message": "{\"loudnessThreshold\": " + loudnessThreshold + ", \"minSilenceWindowMs\": " + minSilenceWindowMs + "}"
     }
   
     headerBytes = new ArrayBuffer(8); //4 bytes magic plus 4 bytes jsonLen
@@ -116,8 +118,11 @@ function toggleFlow() {
   if (microServiceKey.length == 0) {
     microServiceKey = document.getElementById("microServiceKey").value;
   }
+  
+  loudnessThreshold = document.getElementById("loudnessThreshold").value;
+  minSilenceWindowMs = document.getElementById("minSilenceWindowMs").value;
 
-  console.log("startFlow(), gapiKey: " + gapiKey + ", workflowKey: " + workflowKey + ", sttNodeKey: " + sttNodeKey + ", microServiceKey: " + microServiceKey);
+  console.log("startFlow(), gapiKey: " + gapiKey + ", workflowKey: " + workflowKey + ", sttNodeKey: " + sttNodeKey + ", microServiceKey: " + microServiceKey + ", loudnessThreshold: " + loudnessThreshold + ", minSilenceWindowMs: " + minSilenceWindowMs);
 
   connect();
 }

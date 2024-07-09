@@ -232,3 +232,8 @@ margin-left: 2rem;
 .text-box {
   width: 20rem;
 }
+
+.instruction {
+  font-size: 0.8rem;
+  line-height: 0.8rem;
+}
