@@ -35,6 +35,15 @@ var startedMode = false;
 
 function onLoad() {
 
+    var queryString = window.location.search;
+    var params = new URLSearchParams(queryString);
+    console.log("QueryString: " + queryString);
+    
+    document.getElementById("gapiUrl").value = params.get("gapiUrl");
+    document.getElementById("gapiKey").value = params.get("gapiKey");
+    document.getElementById("workflowKey").value = params.get("workflowKey");
+    document.getElementById("sttNodeKey").value = params.get("sttNodeKey");
+    document.getElementById("microServiceKey").value = params.get("microServiceKey");
 }
 
 function encodeMicroServiceMsg(binBytesArrayBuffer) {
